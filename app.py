@@ -1,14 +1,17 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import tensorflow as tf
+import tensorflow_text
 import requests
 
 app = FastAPI()
 
+
 class Review(BaseModel):
     id: int
-    title: str
-    overview: str
+    movie_id: int
+    content: str
+
 
 @app.get('/')
 def Index():
@@ -17,24 +20,26 @@ def Index():
 
 @app.post('/predict')
 def LoadAndPredict(review: Review):
-    model = tf.saved_model.load('./my_model')
-    
-    prediction = model([review.overview])
-    data = prediction.numpy()[0][0]
-    
-    evaluation = ''
-    if data > 0.5:
-        evaluation = 'positive'
-    else:
-        evaluation = 'negative'
+    BERT = '../bert_model'
+    model = tf.saved_model.load(BERT)
 
-    response = requests.post('http://localhost:5000/movies/revies{review.id}', {
-      "id": review.id,
-      "prediction": evaluation
+    prediction = model([review.content])
+    data = prediction.numpy()[0][0]
+
+    evaluation = True
+    if data >= 0:
+        evaluation = True
+    else:
+        evaluation = False
+
+    response = requests.post('http://localhost:8080/api/ai', {
+        "id": review.id,
+        "movie_id": review.movie_id,
+        "result": evaluation
     })
 
     return {
         "id": review.id,
-        "prediction": evaluation
+        "movie_id": review.movie_id,
+        "result": evaluation
     }
-

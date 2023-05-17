@@ -1,1 +1,4 @@
 __pycache__
+/bert_model
+/lstm_model
+/my_model
